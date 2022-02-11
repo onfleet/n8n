@@ -221,7 +221,7 @@ export const taskFields: INodeProperties[] = [
 						value: 0,
 					},
 				],
-				default: '',
+				default: [],
 				description: 'The state of the tasks',
 			},
 			{

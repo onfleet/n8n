@@ -25,6 +25,7 @@ import {
 	OnfleetTaskUpdate,
 	OnfleetTeamAutoDispatch,
 	OnfleetTeams,
+	OnfleetVehicle,
 	OnfleetWebhook,
 	OnfleetWorker,
 	OnfleetWorkerEstimates,
@@ -35,16 +36,46 @@ import {
 import { taskFields, taskOperations } from './descriptions/TaskDescription';
 
 import { IExecuteFunctions } from 'n8n-core';
-import { destinationFields, destinationOperations } from './descriptions/DestinationDescription';
-import { onfleetApiRequest, resourceLoaders } from './GenericFunctions';
-import { recipientFields, recipientOperations } from './descriptions/RecipientDescription';
-import { organizationFields, organizationOperations } from './descriptions/OrganizationDescription';
-import { adminFields, adminOperations } from './descriptions/AdministratorDescription';
-import { hubFields, hubOperations } from './descriptions/HubDescription';
-import { workerFields, workerOperations } from './descriptions/WorkerDescription';
-import { webhookFields, webhookOperations } from './descriptions/WebhookDescription';
-import { containerFields, containerOperations } from './descriptions/ContainerDescription';
-import { teamFields, teamOperations } from './descriptions/TeamDescription';
+import {
+	destinationFields,
+	destinationOperations,
+} from './descriptions/DestinationDescription';
+import {
+	onfleetApiRequest,
+	resourceLoaders,
+} from './GenericFunctions';
+import {
+	recipientFields,
+	recipientOperations,
+} from './descriptions/RecipientDescription';
+import {
+	organizationFields,
+	organizationOperations,
+} from './descriptions/OrganizationDescription';
+import {
+	adminFields,
+	adminOperations,
+} from './descriptions/AdministratorDescription';
+import {
+	hubFields,
+	hubOperations,
+} from './descriptions/HubDescription';
+import {
+	workerFields,
+	workerOperations,
+} from './descriptions/WorkerDescription';
+import {
+	webhookFields,
+	webhookOperations,
+} from './descriptions/WebhookDescription';
+import {
+	containerFields,
+	containerOperations,
+} from './descriptions/ContainerDescription';
+import {
+	teamFields,
+	teamOperations,
+} from './descriptions/TeamDescription';
 import { OptionsWithUri } from 'request';
 
 export class Onfleet implements INodeType {
@@ -251,7 +282,7 @@ export class Onfleet implements INodeType {
 				if (typeof shared === 'boolean' && shared) {
 					const { destinationProperties = {} } = this.getNodeParameter('destination', item) as IDataObject;
 					destination = destinationProperties;
-				} else {
+				} else if (typeof shared !== 'boolean') {
 					const { destination: destinationCollection = {} } = this.getNodeParameter(shared.parent, item) as IDataObject;
 					destination = (destinationCollection as IDataObject).destinationProperties;
 				}
@@ -397,8 +428,8 @@ export class Onfleet implements INodeType {
 			/*                        Get fields for update worker                        */
 			/* -------------------------------------------------------------------------- */
 			const {vehicleProperties} = this.getNodeParameter('vehicle', item) as IDataObject;
-			const { additionalFields: vehicle } = vehicleProperties as IDataObject;
-			const workerData: OnfleetWorker = { vehicle: (vehicle as IDataObject) };
+			const { additionalFields: vehicle = {} } = vehicleProperties as IDataObject;
+			const workerData: OnfleetWorker = { vehicle: (vehicle as OnfleetVehicle) };
 
 			// Adding additional fields
 			const updateFields = this.getNodeParameter('updateFields', item) as IDataObject;
@@ -823,7 +854,7 @@ export class Onfleet implements INodeType {
 					const id = this.getNodeParameter('id', index) as string;
 					const path = `${resource}/${id}`;
 					await onfleetApiRequest.call(this, 'DELETE', encodedApiKey, path);
-					return { success: true };
+					responseData.push({ success: true });
 				} else if (operation === 'getAll') {
 					/* -------------------------------------------------------------------------- */
 					/*                                Get all tasks                               */
@@ -843,7 +874,7 @@ export class Onfleet implements INodeType {
 					if (!taskData) { continue; }
 					const path = `${resource}/${id}/complete`;
 					await onfleetApiRequest.call(this, 'POST', encodedApiKey, path, taskData);
-					return { success: true };
+					responseData.push({ success: true });
 				} else if (operation === 'update') {
 					/* -------------------------------------------------------------------------- */
 					/*                                Update a task                               */
@@ -859,6 +890,9 @@ export class Onfleet implements INodeType {
 					responseData.push({ error: (error as IDataObject).toString() });
 				}
 			}
+		}
+		if (['delete', 'complete'].includes(operation)) {
+			return { success: true };
 		}
 		return responseData;
 	}
@@ -1048,13 +1082,16 @@ export class Onfleet implements INodeType {
 					const id = this.getNodeParameter('id', index) as string;
 					const path = `${resource}/${id}`;
 					await onfleetApiRequest.call(this, 'DELETE', encodedApiKey, path);
-					return  { success: true };
+					responseData.push({ success: true });
 				}
 			} catch (error) {
 				if (this.continueOnFail()) {
 					responseData.push({ error: (error as IDataObject).toString() });
 				}
 			}
+		}
+		if (operation === 'delete') {
+			return { success: true };
 		}
 
 		return responseData;
@@ -1178,7 +1215,8 @@ export class Onfleet implements INodeType {
 					/* -------------------------------------------------------------------------- */
 					const id = this.getNodeParameter('id', index) as string;
 					const path = `${resource}/${id}`;
-					responseData.push(await onfleetApiRequest.call(this, 'DELETE', encodedApiKey, path));
+					await onfleetApiRequest.call(this, 'DELETE', encodedApiKey, path);
+					responseData.push({ success: true });
 				} else if (operation === 'getSchedule') {
 					/* -------------------------------------------------------------------------- */
 					/*                             Get worker schedule                            */
@@ -1200,6 +1238,9 @@ export class Onfleet implements INodeType {
 					responseData.push({ error: (error as IDataObject).toString() });
 				}
 			}
+		}
+		if (operation === 'delete') {
+			return { success: true };
 		}
 
 		return responseData;
@@ -1241,13 +1282,17 @@ export class Onfleet implements INodeType {
 					/* -------------------------------------------------------------------------- */
 					const id = this.getNodeParameter('id', index) as string;
 					const path = `${resource}/${id}`;
-					responseData.push(await onfleetApiRequest.call(this, 'DELETE', encodedApiKey, path));
+					await onfleetApiRequest.call(this, 'DELETE', encodedApiKey, path)
+					responseData.push({ success: true });
 				}
 			} catch (error) {
 				if (this.continueOnFail()) {
 					responseData.push({ error: (error as IDataObject).toString() });
 				}
 			}
+		}
+		if (operation === 'delete') {
+			return { success: true };
 		}
 
 		return responseData;
@@ -1366,7 +1411,7 @@ export class Onfleet implements INodeType {
 					const id = this.getNodeParameter('id', index) as string;
 					const path = `${resource}/${id}`;
 					await onfleetApiRequest.call(this, 'DELETE', encodedApiKey, path);
-					return { success: true };
+					responseData.push({ success: true });
 				} else if (operation === 'getTimeEstimates') {
 					/* -------------------------------------------------------------------------- */
 					/*      Get driver time estimates for tasks that haven't been created yet     */
@@ -1389,6 +1434,9 @@ export class Onfleet implements INodeType {
 					responseData.push({ error: (error as IDataObject).toString() });
 				}
 			}
+		}
+		if (operation === 'delete') {
+			return { success: true };
 		}
 
 		return responseData;
