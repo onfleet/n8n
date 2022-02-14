@@ -660,9 +660,11 @@ export class Onfleet implements INodeType {
 			/*                          Get fields to list tasks                          */
 			/* -------------------------------------------------------------------------- */
 			const filters = this.getNodeParameter('filters', item) as IDataObject;
-			const listTaskData: OnfleetListTaskFilters = {
-				from: new Date(this.getNodeParameter('from', 0) as Date).getTime(),
-			};
+			const from = this.getNodeParameter('from', 0);
+			if (!from) {
+				throw new NodeOperationError(this.getNode(), 'From is required');
+			}
+			const listTaskData: OnfleetListTaskFilters = { from: new Date(from as Date).getTime() };
 
 			// Adding extra fields to search tasks
 			if (filters.to) {
