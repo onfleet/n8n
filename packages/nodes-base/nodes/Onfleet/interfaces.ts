@@ -182,3 +182,10 @@ export interface OnfleetTeamAutoDispatch {
 	routeEnd?: string;
 	maxAllowedDelay?: number;
 }
+
+export interface OnfleetGetTasks {
+	isPickupTask?: boolean;
+	to?: number;
+	from?: number;
+	lastId?: string;
+}

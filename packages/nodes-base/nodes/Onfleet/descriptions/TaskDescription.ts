@@ -16,11 +16,6 @@ export const taskOperations: INodeProperties[] = [
 		},
 		options: [
 			{
-				name: 'Create',
-				value: 'create',
-				description: 'Create a new Onfleet task',
-			},
-			{
 				name: 'Clone',
 				value: 'clone',
 				description: 'Clone an Onfleet task',
@@ -31,9 +26,19 @@ export const taskOperations: INodeProperties[] = [
 				description: 'Force-complete a started Onfleet task',
 			},
 			{
+				name: 'Create',
+				value: 'create',
+				description: 'Create a new Onfleet task',
+			},
+			{
 				name: 'Delete',
 				value: 'delete',
 				description: 'Delete an Onfleet task',
+			},
+			{
+				name: 'Get',
+				value: 'get',
+				description: 'Get a specific Onfleet task',
 			},
 			{
 				name: 'Get All',
@@ -41,9 +46,14 @@ export const taskOperations: INodeProperties[] = [
 				description: 'Get all Onfleet tasks',
 			},
 			{
-				name: 'Get',
-				value: 'get',
-				description: 'Get a specific Onfleet task',
+				name: 'Get Unassigned Tasks In A Team',
+				value: 'getTeamTasks',
+				description: 'Get all tasks currently assigned to a Team that are not assigned to a worker',
+			},
+			{
+				name: 'Get Worker\'s Assigned Tasks',
+				value: 'getWorkerTasks',
+				description: 'Get all tasks currently assigned to a Worker',
 			},
 			{
 				name: 'Update',
@@ -120,6 +130,38 @@ const serviceTimeField = {
 	description: 'The number of minutes to be spent by the worker on arrival at this task\'s destination, for route optimization purposes',
 } as INodeProperties;
 
+export const fromField = {
+	displayName: 'From',
+	name: 'from',
+	type: 'dateTime',
+	description: 'The starting time of the range. Tasks created or completed at or after this time will be included.',
+	default: '',
+} as INodeProperties;
+
+export const toField = {
+	displayName: 'To',
+	name: 'to',
+	type: 'dateTime',
+	default: null,
+	description: 'The ending time of the range. Defaults to current time if not specified.',
+} as INodeProperties;
+
+export const lastIdField = {
+	displayName: 'Last ID',
+	name: 'lastId',
+	type: 'string',
+	default: '',
+	description: 'The last ID to walk the paginated response',
+} as INodeProperties;
+
+export const isPickUpTaskField = {
+	displayName: 'Is Pick Up Task',
+	name: 'isPickupTask',
+	type: 'boolean',
+	default: false,
+	description: 'Determines if the results should list Pick-up tasks or Drop-off tasks',
+} as INodeProperties;
+
 export const taskFields: INodeProperties[] = [
 	{
 		displayName: 'Task ID',
@@ -133,12 +175,42 @@ export const taskFields: INodeProperties[] = [
 				operation: [
 					'create',
 					'getAll',
+					'getWorkerTasks',
+					'getTeamTasks',
 				],
 			},
 		},
 		default: '',
 		required: true,
 		description: 'The ID of the task object for lookup',
+	},
+	{
+		displayName: 'Team ID',
+		name: 'id',
+		type: 'string',
+		displayOptions: {
+			show: {
+				resource: [ 'task' ],
+				operation: [ 'getTeamTasks' ],
+			},
+		},
+		default: '',
+		required: true,
+		description: 'The ID of the team object for lookup',
+	},
+	{
+		displayName: 'Worker ID',
+		name: 'id',
+		type: 'string',
+		displayOptions: {
+			show: {
+				resource: [ 'task' ],
+				operation: [ 'getWorkerTasks' ],
+			},
+		},
+		default: '',
+		required: true,
+		description: 'The ID of the worker object for lookup',
 	},
 	{
 		...destinationExternalField,
@@ -152,18 +224,14 @@ export const taskFields: INodeProperties[] = [
 		required: true,
 	},
 	{
-		displayName: 'From',
-		name: 'from',
-		type: 'dateTime',
+		...fromField,
 		displayOptions: {
 			show: {
 				resource: [ 'task' ],
 				operation: [ 'getAll' ],
 			},
 		},
-		description: 'The starting time of the range. Tasks created or completed at or after this time will be included.',
 		required: true,
-		default: '',
 	},
 	{
 		displayName: 'Success',
@@ -192,13 +260,7 @@ export const taskFields: INodeProperties[] = [
 			},
 		},
 		options: [
-			{
-				displayName: 'To',
-				name: 'to',
-				type: 'dateTime',
-				default: null,
-				description: 'The ending time of the range. Defaults to current time if not specified.',
-			},
+			toField,
 			{
 				displayName: 'State',
 				name: 'state',
@@ -224,13 +286,7 @@ export const taskFields: INodeProperties[] = [
 				default: [],
 				description: 'The state of the tasks',
 			},
-			{
-				displayName: 'Last ID',
-				name: 'lastId',
-				type: 'string',
-				default: '',
-				description: 'The last ID to walk the paginated response',
-			},
+			lastIdField,
 		],
 	},
 	{
@@ -381,6 +437,28 @@ export const taskFields: INodeProperties[] = [
 				default: false,
 				description: 'Whether to override the organization ID with the merchant\'s org ID for this task',
 			},
+		],
+	},
+	{
+		displayName: 'Filters',
+		name: 'filters',
+		type: 'collection',
+		placeholder: 'Add Filter',
+		default: {},
+		displayOptions: {
+			show: {
+				resource: [ 'task' ],
+				operation: [
+					'getWorkerTasks',
+					'getTeamTasks',
+				],
+			},
+		},
+		options: [
+			fromField,
+			lastIdField,
+			toField,
+			isPickUpTaskField,
 		],
 	},
 ];

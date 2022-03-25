@@ -2,6 +2,13 @@ import {
 	INodeProperties
 } from 'n8n-workflow';
 
+import {
+	fromField,
+	isPickUpTaskField,
+	lastIdField,
+	toField,
+} from './TaskDescription';
+
 export const workerOperations: INodeProperties[] = [
 	{
 		displayName: 'Operation',
@@ -37,6 +44,11 @@ export const workerOperations: INodeProperties[] = [
 				name: 'Get Schedule',
 				value: 'getSchedule',
 				description: 'Get a specific Onfleet worker schedule',
+			},
+			{
+				name: 'Get Worker\'s Assigned Tasks',
+				value: 'getTasks',
+				description: 'Get all tasks currently assigned to a Worker',
 			},
 			{
 				name: 'Set Worker\'s Schedule',
@@ -377,11 +389,12 @@ export const workerFields: INodeProperties[] = [
 			show: {
 				resource: [ 'worker' ],
 				operation: [
+					'delete',
 					'get',
 					'getSchedule',
+					'getTasks',
 					'setSchedule',
 					'update',
-					'delete',
 				],
 			},
 		},
@@ -687,6 +700,25 @@ export const workerFields: INodeProperties[] = [
 					},
 				],
 			},
+		],
+	},
+	{
+		displayName: 'Filters',
+		name: 'filters',
+		type: 'collection',
+		placeholder: 'Add Filter',
+		default: {},
+		displayOptions: {
+			show: {
+				resource: [ 'worker' ],
+				operation: [ 'getTasks'],
+			},
+		},
+		options: [
+			fromField,
+			lastIdField,
+			toField,
+			isPickUpTaskField,
 		],
 	},
 ];

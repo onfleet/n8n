@@ -21,7 +21,7 @@ import * as moment from 'moment-timezone';
 export async function onfleetApiRequest(
 	this: IWebhookFunctions | IHookFunctions | IExecuteFunctions | ILoadOptionsFunctions,
 	method: string,
-	apikey: string,
+	apiKey: string,
 	resource: string,
 	body: any = {}, // tslint:disable-line:no-any
 	qs?: any, // tslint:disable-line:no-any
@@ -29,7 +29,7 @@ export async function onfleetApiRequest(
 	const options: OptionsWithUri = {
 		headers: {
 			'Content-Type': 'application/json',
-			'Authorization': `Basic ${apikey}`,
+			'Authorization': `Basic ${apiKey}`,
 			'User-Agent': 'n8n-onfleet',
 		},
 		method,

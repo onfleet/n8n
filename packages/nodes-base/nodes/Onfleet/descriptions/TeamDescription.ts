@@ -2,6 +2,13 @@ import {
 	INodeProperties
 } from 'n8n-workflow';
 
+import {
+	fromField,
+	isPickUpTaskField,
+	lastIdField,
+	toField,
+} from './TaskDescription';
+
 export const teamOperations: INodeProperties[] = [
 	{
 		displayName: 'Operation',
@@ -42,6 +49,11 @@ export const teamOperations: INodeProperties[] = [
 				name: 'Get Time Estimates',
 				value: 'getTimeEstimates',
 				description: 'Get estimated times for upcoming tasks for a team, returns a selected driver',
+			},
+			{
+				name: 'Get Unassigned Tasks In A Team',
+				value: 'getTasks',
+				description: 'Get all tasks currently assigned to a Team that are not assigned to a worker',
 			},
 			{
 				name: 'Update',
@@ -248,11 +260,12 @@ export const teamFields: INodeProperties[] = [
 			show: {
 				resource: [ 'team' ],
 				operation: [
-					'get',
-					'update',
-					'delete',
-					'getTimeEstimates',
 					'autoDispatch',
+					'delete',
+					'get',
+					'getTasks',
+					'getTimeEstimates',
+					'update',
 				],
 			},
 		},
@@ -503,6 +516,25 @@ export const teamFields: INodeProperties[] = [
 				...serviceTimeEstimateField,
 				required: false,
 			},
+		],
+	},
+	{
+		displayName: 'Filters',
+		name: 'filters',
+		type: 'collection',
+		placeholder: 'Add Filter',
+		default: {},
+		displayOptions: {
+			show: {
+				resource: [ 'team' ],
+				operation: [ 'getTasks' ],
+			},
+		},
+		options: [
+			fromField,
+			lastIdField,
+			toField,
+			isPickUpTaskField,
 		],
 	},
 ];

@@ -17,6 +17,7 @@ import {
 	OnfleetCloneTask,
 	OnfleetCloneTaskOptions,
 	OnfleetDestination,
+	OnfleetGetTasks,
 	OnfleetHubs,
 	OnfleetListTaskFilters,
 	OnfleetRecipient,
@@ -401,7 +402,9 @@ export class Onfleet implements INodeType {
 	 * @param operation Current worker operation
 	 * @returns {OnfleetWorker|OnfleetWorkerFilter|OnfleetWorkerSchedule|null} Worker information
 	 */
-	 static getWorkerFields(this: IExecuteFunctions, item: number, operation: string): OnfleetWorker | OnfleetWorkerFilter  | OnfleetWorkerSchedule | null {
+	 static getWorkerFields(
+		this: IExecuteFunctions, item: number, operation: string,
+	): OnfleetWorker | OnfleetWorkerFilter  | OnfleetWorkerSchedule | OnfleetGetTasks | null {
 		if (operation === 'create') {
 			/* -------------------------------------------------------------------------- */
 			/*                        Get fields for create worker                        */
@@ -463,6 +466,8 @@ export class Onfleet implements INodeType {
 
 			Object.assign(workerFilter, filterFields);
 			return workerFilter;
+		} else if (operation === 'getTasks') {
+			return this.getNodeParameter('filters', item) as OnfleetGetTasks;
 		} else if (operation === 'setSchedule') {
 			/* -------------------------------------------------------------------------- */
 			/*                            Set a worker schedule                           */
@@ -597,8 +602,9 @@ export class Onfleet implements INodeType {
 	 * @param operation Current task operation
 	 * @returns {OnfleetListTaskFilters | OnfleetTask } Task information
 	 */
-	static getTaskFields(this: IExecuteFunctions, item: number, operation: string):
-		OnfleetListTaskFilters | OnfleetTask | OnfleetCloneTask | OnfleetTaskComplete | OnfleetTaskUpdate | null  {
+	static getTaskFields(
+		this: IExecuteFunctions, item: number, operation: string,
+	): OnfleetListTaskFilters | OnfleetTask | OnfleetCloneTask | OnfleetTaskComplete | OnfleetTaskUpdate | OnfleetGetTasks | null  {
 		if (operation === 'create') {
 			/* -------------------------------------------------------------------------- */
 			/*                         Get fields to create a task                        */
@@ -687,6 +693,8 @@ export class Onfleet implements INodeType {
 			const taskData: OnfleetTaskComplete = { completionDetails: { success } };
 			if (additionalFields.notes) taskData.completionDetails.notes = additionalFields.notes as string;
 			return taskData;
+		} else if (['getWorkerTasks', 'getTeamTasks'].includes(operation)) {
+			return this.getNodeParameter('filters', item) as OnfleetGetTasks;
 		}
 		return null;
 	}
@@ -697,7 +705,9 @@ export class Onfleet implements INodeType {
 	 * @param operation Current team operation
 	 * @returns {OnfleetTeams} Team information
 	 */
-	 static getTeamFields(this: IExecuteFunctions, item: number, operation: string): OnfleetTeams | OnfleetWorkerEstimates | OnfleetTeamAutoDispatch | null {
+	 static getTeamFields(
+		this: IExecuteFunctions, item: number, operation: string,
+	): OnfleetTeams | OnfleetWorkerEstimates | OnfleetTeamAutoDispatch | OnfleetGetTasks | null {
 		if (operation === 'create') {
 			/* -------------------------------------------------------------------------- */
 			/*                         Get fields to create a team                        */
@@ -721,6 +731,8 @@ export class Onfleet implements INodeType {
 			const updateFields = this.getNodeParameter('updateFields', item) as IDataObject;
 			Object.assign(teamData, updateFields);
 			return teamData;
+		} else if (operation === 'getTasks') {
+			return this.getNodeParameter('filters', item) as OnfleetGetTasks;
 		} else if (operation === 'getTimeEstimates') {
 			/* -------------------------------------------------------------------------- */
 			/*      Get driver time estimates for tasks that haven't been created yet     */
@@ -886,6 +898,24 @@ export class Onfleet implements INodeType {
 					const taskData = Onfleet.getTaskFields.call(this, index, operation);
 					if (!taskData) { continue; }
 					responseData.push(await onfleetApiRequest.call(this, 'PUT', encodedApiKey, path, taskData));
+				} else if (operation === 'getWorkerTasks') {
+					/* -------------------------------------------------------------------------- */
+					/*                Get all tasks currently assigned to a Worker                */
+					/* -------------------------------------------------------------------------- */
+					const id = this.getNodeParameter('id', index) as string;
+					const filters = Onfleet.getTaskFields.call(this, index, operation);
+					const path = `workers/${id}/${resource}`;
+					const { tasks = [] } =  await onfleetApiRequest.call(this, 'GET', encodedApiKey, path, {}, filters);
+					responseData.push(...tasks);
+				} else if (operation === 'getTeamTasks') {
+					/* -------------------------------------------------------------------------- */
+					/*     Get all tasks assigned to a Team that are not assigned to a worker     */
+					/* -------------------------------------------------------------------------- */
+					const id = this.getNodeParameter('id', index) as string;
+					const filters = Onfleet.getTaskFields.call(this, index, operation);
+					const path = `teams/${id}/${resource}`;
+					const { tasks = [] } =  await onfleetApiRequest.call(this, 'GET', encodedApiKey, path, {}, filters);
+					responseData.push(...tasks);
 				}
 			} catch (error) {
 				if (this.continueOnFail()) {
@@ -1234,6 +1264,15 @@ export class Onfleet implements INodeType {
 					const workerSchedule = Onfleet.getWorkerFields.call(this, index, operation) as OnfleetWorkerSchedule;
 					const path = `${resource}/${id}/schedule`;
 					responseData.push(await onfleetApiRequest.call(this, 'POST', encodedApiKey, path, workerSchedule));
+				} else if (operation === 'getTasks') {
+					/* -------------------------------------------------------------------------- */
+					/*                Get all tasks currently assigned to a Worker                */
+					/* -------------------------------------------------------------------------- */
+					const id = this.getNodeParameter('id', index) as string;
+					const filters = Onfleet.getTeamFields.call(this, index, operation);
+					const path = `${resource}/${id}/tasks`;
+					const { tasks = [] } = await onfleetApiRequest.call(this, 'GET', encodedApiKey, path, {}, filters);
+					responseData.push(...tasks);
 				}
 			} catch (error) {
 				if (this.continueOnFail()) {
@@ -1284,7 +1323,7 @@ export class Onfleet implements INodeType {
 					/* -------------------------------------------------------------------------- */
 					const id = this.getNodeParameter('id', index) as string;
 					const path = `${resource}/${id}`;
-					await onfleetApiRequest.call(this, 'DELETE', encodedApiKey, path)
+					await onfleetApiRequest.call(this, 'DELETE', encodedApiKey, path);
 					responseData.push({ success: true });
 				}
 			} catch (error) {
@@ -1430,6 +1469,15 @@ export class Onfleet implements INodeType {
 					const teamAutoDispatch = Onfleet.getTeamFields.call(this, index, operation) as OnfleetWorkerSchedule;
 					const path = `${resource}/${id}/dispatch`;
 					responseData.push(await onfleetApiRequest.call(this, 'POST', encodedApiKey, path, teamAutoDispatch));
+				} else if (operation === 'getTasks') {
+					/* -------------------------------------------------------------------------- */
+					/*     Get all tasks assigned to a Team that are not assigned to a worker     */
+					/* -------------------------------------------------------------------------- */
+					const id = this.getNodeParameter('id', index) as string;
+					const filters = Onfleet.getTeamFields.call(this, index, operation);
+					const path = `${resource}/${id}/tasks`;
+					const { tasks = [] } = await onfleetApiRequest.call(this, 'GET', encodedApiKey, path, {}, filters);
+					responseData.push(...tasks);
 				}
 			} catch (error) {
 				if (this.continueOnFail()) {
@@ -1469,5 +1517,4 @@ export class Onfleet implements INodeType {
 		// Map data to n8n data
 		return [this.helpers.returnJsonArray(responseData)];
 	}
-
 }
