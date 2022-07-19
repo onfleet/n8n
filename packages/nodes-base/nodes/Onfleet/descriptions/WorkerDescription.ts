@@ -345,7 +345,7 @@ const scheduleStartField = {
 	name: 'start',
 	type: 'dateTime',
 	default: '',
-	description: 'Start time. This defaults to the organization\'s timezone.',
+	description: 'Start time. This should be according to the organization\'s timezone.',
 } as INodeProperties;
 
 const scheduleEndField = {
@@ -353,7 +353,7 @@ const scheduleEndField = {
 	name: 'end',
 	type: 'dateTime',
 	default: '',
-	description: 'End time. This defaults to the organization\'s timezone.',
+	description: 'End time. This should be according to the organization\'s timezone.',
 } as INodeProperties;
 
 export const workerFields: INodeProperties[] = [
